@@ -98,6 +98,10 @@ PIXI JS
             return ((this.x * v.x) + (this.y * v.y));
         }
         //
+        get(){
+            return new Vector2d(this.x, this.y);
+        }
+        //
         static random2D(){
             let x = (Math.random() * canvasWidth);
             let y = (Math.random() * canvasHeight);
@@ -181,6 +185,44 @@ PIXI JS
 
     }
 
+    class Particle{
+        constructor(){
+            this.radius = 10;
+            let x = random(this.radius, (canvasWidth - this.radius));
+            let y = random(this.radius, (canvasHeight - this.radius));
+            this.location = new Vector2d(x, y);
+            this.velocity = new Vector2d(0, 0);
+            this.acceleration = new Vector2d(0, 0.01);
+            this.lifeSpan = 255.0;
+
+            //graphics
+            this.graphics = new PIXI.Graphics();
+            app.stage.addChild(this.graphics);
+        }
+        //
+        isDead(){
+            if(this.lifeSpan < 0.0){
+                return true;
+            }
+            return false;
+        }
+        //
+        Update(){
+            this.velocity.add(this.acceleration);
+            this.location.add(this.velocity);
+            this.lifeSpan -= 2.0;
+        }
+        //
+        Draw(){
+            // Circle + line style 1
+            this.graphics.clear();
+            this.graphics.lineStyle(2, 0xFFFFFF, this.lifeSpan);
+            this.graphics.beginFill(0x828282, this.lifeSpan);
+            this.graphics.drawCircle(this.location.x, this.location.y, this.radius);
+            this.graphics.endFill();
+        }
+    }
+
     /*-------------------------------------------------------------
     OBJECT 
     -------------------------------------------------------------*/
@@ -188,8 +230,11 @@ PIXI JS
     const BOIDS = new Array();
     const COUNT_ELEMENT = 10;
 
+    const particle = new Particle();
+
+
     for (let i = 0; i < COUNT_ELEMENT; i++) {
-        BOIDS.push(new Mover());        
+        BOIDS.push(new Particle());        
     }
 
     
@@ -206,6 +251,11 @@ PIXI JS
             m.Draw();
         });
 
+        particle.Update();
+        particle.Draw();
+        if(particle.isDead()){
+            console.log('is dead');
+        }
     
     });
 
