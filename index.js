@@ -4,8 +4,8 @@ PIXI JS
 (function(){
 'use strict';
 
-    const canvasWidth = 800;
-    const canvasHeight = 600;
+    const canvasWidth = 600;
+    const canvasHeight = 400;
     
     const app = new PIXI.Application({
         width: canvasWidth,
@@ -13,15 +13,25 @@ PIXI JS
         resolution: window.devicePixelRatio || 1
     });
     //
-    document.getElementById('canvas').appendChild(app.view);
+    document.body.appendChild(app.view);
     
     let textFps = 'none'
     const fps = new PIXI.Text(textFps, { fontFamily: 'Arial', fontSize: 24, fill: 0xffffff });
     fps.x = 10;
     fps.y = 10;
     app.stage.addChild(fps);
-
     
+    /*-------------------------------------------------------------
+    UTILS 
+    -------------------------------------------------------------*/
+    function random(min, max) {
+      if (typeof max !== undefined) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }else{
+        return Math.floor(Math.random() * min) + 1;
+      }
+    }
+        
     /*-------------------------------------------------------------
     CLASS 
     -------------------------------------------------------------*/
@@ -31,30 +41,105 @@ PIXI JS
             this.y = y || 0;
         }
         //
+        add(v){            
+            this.x += v.x;
+            this.y += v.y;
+        }
+        //
+        sub(v){
+            this.x -= v.x;
+            this.y -= v.y;
+        }
+        //
+        mult(n){
+            this.x *= n;
+            this.y *= n;
+        }
+        //
+        div(n){
+            this.x /= n;
+            this.y /= n;
+        }
+        //
+        magSq(){
+            let x = this.x;
+            let y = this.y;
+            return (x * x) + (y * y)
+        }
+        //
+        mag(){
+            return Math.sqrt(this.magSq);
+        }
+        //
+        normalize(){
+            let n = this.mag();
+            if(n != 0){
+                this.div(n);
+            }
+        }
+        //
+        copy(){
+            return new Vector2d(this.x, this.y);
+        }
+        //
+        dist(v){
+            let d = v.copy().sub(new Vector2d(this.x, this.y));
+            return d.mag();
+        }
+        //
+        limit(scale){
+            let mSq = this.magSq();
+            if(mSq > (scale * scale)){
+                this.div(Math.sqrt(mSq));
+                this.mult(scale);
+            }
+        }
+        dot(v){
+            return ((this.x * v.x) + (this.y * v.y));
+        }
+        //
+        static random2D(){
+            let x = (Math.random() * canvasWidth);
+            let y = (Math.random() * canvasHeight);
+            return new Vector2d(x, y);
+        }
+
+
     }
 
     class Mover{
         constructor(){
-            this.location = new Vector2d(canvasWidth/2, 25);
+            this.id = 'id-' + Math.random().toString(16).slice(2);
+            this.radius = 10;
+           
+            let x = random(this.radius, (canvasWidth - this.radius));
+            let y = random(this.radius, (canvasHeight - this.radius));
+
+            this.location = new Vector2d(x, y);
+            this.velocity = new Vector2d(0, 0);
+
+            let ax = Math.floor(Math.random() * 2) - 2;
+            let ay = Math.floor(Math.random() * 2) - 2;
             
-            this.radius = 15;
+            this.acceleration = new Vector2d(ax, ay);
+
+            this.xv = 1;
+            this.yv = 3.3;
             
             //graphics
             this.graphics = new PIXI.Graphics();
-            this.graphics.x = this.location.x;
-            this.graphics.y = this.location.y;
             app.stage.addChild(this.graphics);
- 
-           
-            console.log(`Id ${+Date.now()}`);
-            console.log(`Position (x, y) = [${this.graphics.x},${this.graphics.y}]`);
+            
+            console.log(`Id ${this.id}`);
+                      
         }
         //
-        Update() {
-            this.Edges();
-
-           
-           
+        Update() {     
+            this.velocity.add(this.acceleration); 
+            this.velocity.limit(3);           
+            this.location.add(this.velocity);     
+            //
+            this.Bouncing();
         }
         //
         Edges(){
@@ -75,6 +160,16 @@ PIXI JS
             }
         }
         //
+        Bouncing(){
+            if((this.location.x > canvasWidth - this.radius)||(this.location.x < this.radius)){
+                this.velocity.x *= -1;
+            }
+            //
+            if((this.location.y > canvasHeight - this.radius) || (this.location.y < this.radius)){
+                this.velocity.y *= -1;
+            }
+        }
+        //
         Draw(){
             // Circle + line style 1
             this.graphics.clear();
@@ -89,7 +184,13 @@ PIXI JS
     /*-------------------------------------------------------------
     OBJECT 
     -------------------------------------------------------------*/
-    const boids = new Mover();
+    
+    const BOIDS = new Array();
+    const COUNT_ELEMENT = 10;
+
+    for (let i = 0; i < COUNT_ELEMENT; i++) {
+        BOIDS.push(new Mover());        
+    }
 
     
     /*-------------------------------------------------------------
@@ -98,10 +199,12 @@ PIXI JS
     app.ticker.add((delta)=>{
         textFps = `FPS ${delta.toFixed(2)}`;
         fps.text = textFps;
+                      
         //
-
-        boids.Update();
-        boids.Draw();
+        BOIDS.forEach((m)=>{
+            m.Update();
+            m.Draw();
+        });
 
     
     });
